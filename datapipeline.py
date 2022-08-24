@@ -61,3 +61,15 @@ class DataFeed:
         file_name = 'POT_Stock_Price.csv'
         src_file = os.path.join(self.src,file_name)
         return pd.read_csv(src_file,index_col=0, parse_dates=True)
+
+    @property
+    def get_AGU_price(self):
+        file_name = 'AGU_Stock_Price.csv'
+        src_file = os.path.join(self.src,file_name)
+        return pd.read_csv(src_file,index_col=0, parse_dates=True)
+
+    @property
+    def get_NTR_price(self):
+        file_name = 'NTR_Stock_Price.csv'
+        src_file = os.path.join(self.src,file_name)
+        return pd.read_csv(src_file,index_col=0, parse_dates=True)
