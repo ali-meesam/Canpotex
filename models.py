@@ -1,13 +1,47 @@
+from typing import SupportsRound
 from datapipeline import DataFeed
 from datetime import datetime
 
 
-class BrazilCFR(DataFeed):
+class SourceModel(DataFeed):
     def __init__(self) -> None:
         DataFeed.__init__(self)
         self.month = datetime.now().month
+        self.month = 7
         self.year = datetime.now().year
+        self.quarter = (self.month-1)//3 + 1
 
+    @property
+    def monthly_dummy(self):
+        dm1 = 1*self.dm1 if self.month == 1 else 0
+        dm2 = 1*self.dm2 if self.month == 2 else 0
+        dm3 = 1*self.dm3 if self.month == 3 else 0
+        dm4 = 1*self.dm4 if self.month == 4 else 0
+        dm5 = 1*self.dm5 if self.month == 5 else 0
+        dm6 = 1*self.dm6 if self.month == 6 else 0
+        dm7 = 1*self.dm7 if self.month == 7 else 0
+        dm8 = 1*self.dm8 if self.month == 8 else 0
+        dm9 = 1*self.dm9 if self.month == 9 else 0
+        dm10 =1*self.dm10 if self.month == 10 else 0
+        dm11 =1*self.dm11 if self.month == 11 else 0
+        dm12 =1*self.dm12 if self.month == 12 else 0
+        monthly_dummy = dm1 + dm2+dm3+dm4+dm5+dm6+dm7+dm8+dm9+dm10+dm11+dm12
+        return monthly_dummy
+
+    @property
+    def quarterly_dummy(self):
+        q1 = 1*self.dq1 if self.quarter == 1 else 0
+        q2 = 1*self.dq2 if self.quarter == 2 else 0
+        q3 = 1*self.dq3 if self.quarter == 3 else 0
+        q4 = 1*self.dq4 if self.quarter == 4 else 0
+        return q1+q2+q3+q4
+
+
+
+class BrazilCFR(SourceModel):
+    def __init__(self) -> None:
+        SourceModel.__init__(self)
+        
         self.const = -178.690701
         ########################################
         self.FAOPriceIndex_2 = 3.4993116
@@ -20,6 +54,7 @@ class BrazilCFR(DataFeed):
         ########################################
         self.G20Inflation = 8.87621401
         ########################################
+        self.dm1 = 0
         self.dm2 = 2.032841924
         self.dm3 = -0.459241726
         self.dm4 = 13.88908466
@@ -52,18 +87,7 @@ class BrazilCFR(DataFeed):
         # G20Inflation
         g20inflation = self.G20Inflation * self.get_g20_cpi['G20CPI'].dropna().iloc[-1]
         # DUMMY
-        dm2 = 1*self.dm2 if self.month == 2 else 0
-        dm3 = 1*self.dm3 if self.month == 3 else 0
-        dm4 = 1*self.dm4 if self.month == 4 else 0
-        dm5 = 1*self.dm5 if self.month == 5 else 0
-        dm6 = 1*self.dm6 if self.month == 6 else 0
-        dm7 = 1*self.dm7 if self.month == 7 else 0
-        dm8 = 1*self.dm8 if self.month == 8 else 0
-        dm9 = 1*self.dm9 if self.month == 9 else 0
-        dm10 =1*self.dm10 if self.month == 10 else 0
-        dm11 =1*self.dm11 if self.month == 11 else 0
-        dm12 =1*self.dm12 if self.month == 12 else 0
-        monthly_dummy = dm2+dm3+dm4+dm5+dm6+dm7+dm8+dm9+dm10+dm11+dm12
+        monthly_dummy = self.monthly_dummy
         # GDP
         g = self.get_gdp
         gdp = self.USGDP * g[(g.index.month==self.month) & (g.index.year==self.year)]['GDPQXUS'].iloc[-1]
@@ -73,7 +97,6 @@ class BrazilCFR(DataFeed):
         brazil_cfr = fao_2+fao_3+fao_6+eurusd+fertprodquad+g20inflation+monthly_dummy+gdp+brazil_cfr_1+self.const
         print(f"Brazil: ${round(brazil_cfr_1,2)} ->> ${round(brazil_cfr,2)} | {round((brazil_cfr/brazil_cfr_1-1)*100,1)}% {'up' if brazil_cfr >= brazil_cfr_1 else 'down' }")
         return brazil_cfr
-
 
 
 class SEAsiaCFR_Coeff:
