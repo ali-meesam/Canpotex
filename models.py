@@ -1,18 +1,53 @@
 from typing import SupportsRound
 from datapipeline import DataFeed
 from datetime import datetime
-
+import pandas as pd
+import matplotlib.pyplot as plt
 
 class SourceModel(DataFeed):
     def __init__(self) -> None:
         DataFeed.__init__(self)
+        self.simulations = 20000
         self.month = datetime.now().month
         self.month = 7
         self.year = datetime.now().year
         self.quarter = (self.month-1)//3 + 1
 
-    @property
-    def monthly_dummy(self):
+    @staticmethod
+    def kde_max_density(_df):
+        """
+        INPUT: DATAFRAME AND LIST OF COLUMNS TO RUN KDE ON
+        OUTPUT: MAX KDE VALUE PER COLUMN IN A DICTIONARY
+        """
+        columns = _df.columns.tolist()
+        max_density = {}
+        for column_name in columns:
+            # condition1 = column_name not in ['Close',f'delta_{_frame}', f'PercPer{_frame}']
+            # condition2 = self.time_frame not in ['1D','1M','1W']
+            # if condition1 and condition2:
+            # try:
+            ###################################################
+            
+            ax = pd.Series(_df[column_name]).plot.kde()
+            plt.close()
+            items = ax.get_children()
+            l = [items.index(i) for i in items if 'Line2D' in str(i)][0]
+            _x_ = ax.get_children()[l]._x
+            _y_ = ax.get_children()[l]._y
+            # FIND MAX Density Index
+            maximum_density = _x_[_y_.argmax()]
+            
+            # maximum_density = float(_df[column_name].mean())
+            ###################################################
+            max_density[column_name] = maximum_density
+            # except:
+            #     print(f"!!!error KDE estimation:{column_name}",end='\r')
+            #     print(" "*100,end='\r')
+        return max_density
+
+    def monthly_dummy(self,month:int=0):
+        if month!=0:
+            self.month = month
         dm1 = 1*self.dm1 if self.month == 1 else 0
         dm2 = 1*self.dm2 if self.month == 2 else 0
         dm3 = 1*self.dm3 if self.month == 3 else 0
@@ -28,8 +63,10 @@ class SourceModel(DataFeed):
         monthly_dummy = dm1 + dm2+dm3+dm4+dm5+dm6+dm7+dm8+dm9+dm10+dm11+dm12
         return monthly_dummy
 
-    @property
-    def quarterly_dummy(self):
+    
+    def quarterly_dummy(self,month:int=0):
+        if month!=0:
+            self.quarter = (self.month-1)//3 + 1
         q1 = 1*self.dq1 if self.quarter == 1 else 0
         q2 = 1*self.dq2 if self.quarter == 2 else 0
         q3 = 1*self.dq3 if self.quarter == 3 else 0
@@ -70,37 +107,25 @@ class BrazilCFR(SourceModel):
         self.USGDP = 0.002946866
         ########################################
         self.BrazilCFR_1 = 0.916783965
+    
+    def predict(self):
+        # get DATA
+        fao = self.get_food_price_index
+        eurusd = self.get_eurusd
+        fertprod = self.get_total_fertilizer_production
+        inflation = self.get_g20_cpi
+        gdp = self.get_gdp
+        brazil_cfr = self.get_BrazilCFR
 
-    @property
-    def base_prediction(self):
-        """
-        Predicts next months CFR pricing for brazil
-        """
-        # Food Price Index with lags
-        fao_2 = self.FAOPriceIndex_2 * self.get_food_price_index['Food Price Index'].iloc[-1-2]
-        fao_3 = self.FAOPriceIndex_3 * self.get_food_price_index['Food Price Index'].iloc[-1-3]
-        fao_6 = self.FAOPriceIndex_6 * self.get_food_price_index['Food Price Index'].iloc[-1-6]
-        # Exchange rates
-        eurusd = self.USDEURO * (self.get_eurusd['Adj Close']).iloc[-1]
-        # Fertilizer production quadratic
-        fertprodquad = self.FertProdQuad * (self.get_total_fertilizer_production['Total Fertilizer Production']**2).iloc[-1]
-        # G20Inflation
-        g20inflation = self.G20Inflation * self.get_g20_cpi['G20CPI'].dropna().iloc[-1]
-        # DUMMY
-        monthly_dummy = self.monthly_dummy
-        # GDP
-        g = self.get_gdp
-        gdp = self.USGDP * g[(g.index.month==self.month) & (g.index.year==self.year)]['GDPQXUS'].iloc[-1]
-        # Brazil CFR _Fertilizer Weeek
-        brazil_cfr_1 = self.BrazilCFR_1 * self.get_BrazilCFR['BrazilCFR'].iloc[-1]
-        # Poly. Eq.
-        brazil_cfr = fao_2+fao_3+fao_6+eurusd+fertprodquad+g20inflation+monthly_dummy+gdp+brazil_cfr_1+self.const
-        print(f"Brazil: ${round(brazil_cfr_1,2)} ->> ${round(brazil_cfr,2)} | {round((brazil_cfr/brazil_cfr_1-1)*100,1)}% {'up' if brazil_cfr >= brazil_cfr_1 else 'down' }")
-        return brazil_cfr
+        dm = self.monthly_dummy()
+        const = self.const
 
 
-class SEAsiaCFR_Coeff:
+        
+
+class SEAsiaCFR(SourceModel):
     def __init__(self) -> None:
+        SourceModel.__init__(self)
         self.const = -225.2471554
         self.HHNaturalGasPrice = 12.94327564
         self.USGDP = 0.001833302
@@ -117,11 +142,13 @@ class SEAsiaCFR_Coeff:
         self.dm9 = 8.212417022
         self.dm10 = 6.969052856
         self.dm11 = 3.903027432
+        self.dm12 = 0
         self.SEAsia_1 = 0.9583022
 
 
-class MineNetBack_Coeff:
+class MineNetBack(SourceModel):
     def __init__(self) -> None:
+        SourceModel.__init__(self)
         self.const = -18.33
         self.Q1Dummy = -7.16
         self.Q2Dummy = 1.25

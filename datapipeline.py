@@ -24,7 +24,7 @@ class DataFeed:
         file_name = 'SEAsiaCFR.xlsx'
         src_file = os.path.join(self.src,file_name)
         s = pd.read_excel(src_file,index_col=0, parse_dates=True)
-        s[f'std_{seasiacfr_std_window}'] = s['BrazilCFR'].rolling(window=seasiacfr_std_window).std()
+        s[f'std_{seasiacfr_std_window}'] = s['SEAsia'].rolling(window=seasiacfr_std_window).std()
         return s
 
     @property
@@ -58,7 +58,6 @@ class DataFeed:
     @property
     def get_eurusd(self):
         eurusd_std_window = 3
-
         file_name = 'EURUSD=X.csv'
         src_file = os.path.join(self.src,file_name)
         e = pd.read_csv(src_file,index_col=0, parse_dates=True)
@@ -68,19 +67,26 @@ class DataFeed:
 
     @property
     def get_g20_cpi(self):
+        inflation_std_window = 6
         file_name = 'G20CPI.xlsx'
         src_file = os.path.join(self.src,file_name)
-        return pd.read_excel(src_file,index_col=0, parse_dates=True)
+        i = pd.read_excel(src_file,index_col=0, parse_dates=True)
+        i[f'std_{inflation_std_window}'] = i['G20CPI'].rolling(window=inflation_std_window).std()
+        return i
 
     @property
     def get_gdp(self):
+        gdp_std_window=48
+
         file_name = 'GDP_Steo.xlsx'
         src_file = os.path.join(self.src,file_name)
         df = pd.read_excel(src_file)
         df['Date'] = pd.to_datetime(df.Month+"-"+df.Year.apply(lambda x:str(x)))
         df = df[['Date','GDPQXUS']]
         df.set_index('Date',inplace=True)
+        df[f'std_{gdp_std_window}']=df['GDPQXUS'].rolling(window=gdp_std_window).std()
         return df
+
 
     @property
     def get_historical_netback(self):
@@ -91,19 +97,27 @@ class DataFeed:
 
     @property
     def get_natural_gas(self):
+        ng_std_window = 6
         file_name = 'Natural_Gas_Steo.xlsx'
         src_file = os.path.join(self.src,file_name)
         df = pd.read_excel(src_file)
         df['Date'] = pd.to_datetime(df.Month+"-"+df.Year.apply(lambda x:str(x)))
         df = df[['Date','NGHHUUS']]
         df.set_index('Date',inplace=True)
+        df[f'std_{ng_std_window}'] = df['NGHHUUS'].rolling(window=ng_std_window).std()
         return df
 
     @property
     def get_total_fertilizer_production(self):
+        fertprodquad_std_window = 60
+        fertprod_std_window = 60
         file_name = 'TotalFertilizerProduction.xlsx'
         src_file = os.path.join(self.src,file_name)
-        return pd.read_excel(src_file,index_col=0, parse_dates=True)
+        f = pd.read_excel(src_file,index_col=0, parse_dates=True)
+        f['FertProdQuad'] = f['Total Fertilizer Production']**2
+        f[f'std_quad_{fertprodquad_std_window}'] = f['FertProdQuad'].rolling(window=fertprodquad_std_window).std()
+        f[f'std_{fertprod_std_window}'] = f['Total Fertilizer Production'].rolling(window=fertprod_std_window).std()
+        return f
 
     @property
     def get_POT_price(self):
