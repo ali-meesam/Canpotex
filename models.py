@@ -1,8 +1,12 @@
-from typing import SupportsRound
 from datapipeline import DataFeed
 from datetime import datetime
 import pandas as pd
+import numpy as np
+from tqdm import tqdm
 import matplotlib.pyplot as plt
+
+plt.style.use('dark_background')
+
 
 class SourceModel(DataFeed):
     def __init__(self) -> None:
@@ -119,9 +123,44 @@ class BrazilCFR(SourceModel):
 
         dm = self.monthly_dummy()
         const = self.const
-
-
         
+        # LATEST ENTRY ONLY
+        # FAO
+        f = fao[(fao.index.month==self.month) & (fao.index.year==self.year)].iloc[-1]
+        # EURUSD
+        e = eurusd[(eurusd.index.month==self.month) & (eurusd.index.year==self.year)].iloc[-1]
+        # FERTILIZER PRODUCTION
+        fert = fertprod[(fertprod.index.month==self.month) & (fertprod.index.year==self.year)].iloc[-1]
+        # INFLATION
+        ig20 = inflation[(inflation.index.month==self.month) & (inflation.index.year==self.year)].iloc[-1]
+        # GDP
+        g = gdp[(gdp.index.month==self.month) & (gdp.index.year==self.year)].iloc[-1]
+        # BRAZIL CFR
+        b = brazil_cfr[(brazil_cfr.index.month==self.month) & (brazil_cfr.index.year==self.year)].iloc[-1]
+
+        brazil_latest_cfr = []
+        for _ in tqdm(range(self.simulations)):
+            fao2m = np.random.triangular(f.fao_2m-f.std_2m_8,f.fao_2m,f.fao_2m+f.std_2m_8)
+            fao3m = np.random.triangular(f.fao_3m-f.std_3m_6,f.fao_3m,f.fao_3m+f.std_3m_6)
+            fao6m = np.random.triangular(f.fao_6m-f.std_6m_3,f.fao_6m,f.fao_6m+f.std_6m_3)
+            e0m = np.random.triangular(e['Adj Close']-e.std_3,e['Adj Close'],e['Adj Close']+e.std_3)
+            fert0m = np.random.triangular(fert.FertProdQuad-fert.std_quad_60,fert.FertProdQuad,fert.FertProdQuad+fert.std_quad_60)
+            ig200m = np.random.triangular(ig20.G20CPI-ig20.std_6,ig20.G20CPI,ig20.G20CPI+ig20.std_6)
+            g0m = np.random.triangular(g.GDPQXUS-g.std_48,g.GDPQXUS,g.GDPQXUS+g.std_48)
+            b0m = np.random.triangular(b.BrazilCFR-b.std_12,b.BrazilCFR,b.BrazilCFR+b.std_12)
+
+            brazil_latest_cfr.append(dm + const + self.FAOPriceIndex_2*fao2m + self.FAOPriceIndex_3*fao3m + self.FAOPriceIndex_6*fao6m + self.USDEURO*e0m + self.FertProdQuad*fert0m + self.G20Inflation*ig200m + self.USGDP*g0m + self.BrazilCFR_1*b0m)
+
+        pred_df = pd.DataFrame(brazil_latest_cfr,columns=['Predictions'])
+        print("*"*50)
+        print(pred_df.describe())
+        print("*"*50)
+        pred_df.plot(kind='hist',bins=100,title=f'Brazil CFR - {self.simulations} Iterations');
+        plt.show()
+        prediction = round(self.kde_max_density(pred_df)['Predictions'],2)
+        print(f"Max Density -->>> ${prediction}")
+        return prediction
+
 
 class SEAsiaCFR(SourceModel):
     def __init__(self) -> None:
@@ -145,6 +184,50 @@ class SEAsiaCFR(SourceModel):
         self.dm12 = 0
         self.SEAsia_1 = 0.9583022
 
+    
+    def predict(self):
+        # get DATA
+        naturalgas = self.get_natural_gas
+        gdp = self.get_gdp
+        eurusd = self.get_eurusd
+        fertprod = self.get_total_fertilizer_production
+        seasia_cfr = self.get_SEAsiaCFR
+
+        dm = self.monthly_dummy()
+        const = self.const
+        # LATEST ENTRY ONLY
+        # Natural Gas
+        n = naturalgas[(naturalgas.index.month==self.month) & (naturalgas.index.year==self.year)].iloc[-1]
+        # GDP (based on current month)
+        g = gdp[(gdp.index.month==self.month) & (gdp.index.year==self.year)].iloc[-1]
+        # EURUSD
+        e = eurusd[(eurusd.index.month==self.month) & (eurusd.index.year==self.year)].iloc[-1]
+        # FERTILIZER PRODUCTION
+        fert = fertprod[(fertprod.index.month==self.month) & (fertprod.index.year==self.year)].iloc[-1]
+        # BRAZIL CFR
+        s = seasia_cfr.iloc[-1]
+
+        seasia_latest_cfr = []
+        for i in tqdm(range(self.simulations)):
+            ng0m = np.random.triangular(n.NGHHUUS-n.std_6,n.NGHHUUS,n.NGHHUUS+n.std_6)
+            g0m = np.random.triangular(g.GDPQXUS-g.std_48,g.GDPQXUS,g.GDPQXUS+g.std_48)
+            e0m = np.random.triangular(e['Adj Close']-e.std_3,e['Adj Close'],e['Adj Close']+e.std_3)
+            fert0m = np.random.triangular(fert['Total Fertilizer Production']-fert.std_60,fert['Total Fertilizer Production'],fert['Total Fertilizer Production']+fert.std_60)
+            s0m = np.random.triangular(s.SEAsia-s.std_12,s.SEAsia,s.SEAsia+s.std_12)
+            result =dm + const + self.HHNaturalGasPrice* ng0m + self.USGDP*g0m + self.USDEURO*e0m + self.TotalFertilizerProduction*fert0m + self.SEAsia_1 *s0m
+            seasia_latest_cfr.append(result)
+
+        pred_df = pd.DataFrame(seasia_latest_cfr,columns=['Predictions'])
+
+        print("*"*50)
+        print(pred_df.describe())
+        print("*"*50)
+        pred_df.plot(kind='hist',bins=100,title=f'SEAsia CFR - {self.simulations} Iterations');
+        plt.show()
+        prediction = round(self.kde_max_density(pred_df)['Predictions'],2)
+        print(f"Max Density -->>> ${prediction}")
+        return prediction
+
 
 class MineNetBack(SourceModel):
     def __init__(self) -> None:
@@ -153,12 +236,13 @@ class MineNetBack(SourceModel):
         self.Q1Dummy = -7.16
         self.Q2Dummy = 1.25
         self.Q3Dummy = -1.81
+        self.Q4Dummy = 0
         self.EIAE85 = 6.15
         self.FreightCost = -0.22
         self.SEAsia = 0.49
         self.BrazilCFR = 0.37
 
-class ActualNetback_Coeff:
+class ActualNetback:
     def __init__(self) -> None:
         self.MineNetback = 0.41
         self.MineNetback_1 = -0.14
@@ -171,4 +255,13 @@ class ActualNetback_Coeff:
 
         
 
-
+if __name__=='__main__':
+    print("="*100)
+    print("BRAZIL MODEL")
+    m = BrazilCFR()
+    m.predict()
+    print("="*100)
+    print("SE ASIA MODEL")
+    m = SEAsiaCFR()
+    m.predict()
+    
