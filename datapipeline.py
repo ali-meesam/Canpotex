@@ -105,6 +105,30 @@ class DataFeed:
         return df
 
     @property
+    def get_historical_mineNetback(self):
+        file_name = 'Historical_MineNetback.xlsx'
+        src_file = os.path.join(self.src,file_name)
+        df = pd.read_excel(src_file,index_col=0,parse_dates=True)
+
+        lag1 = 0
+        lag2 = 1
+        lag3 = 6
+
+        std_window1 = 12
+        std_window2 = 12
+        std_window3 = 12
+
+        df['lag1'] = df.MineNetback.shift(lag1)
+        df['lag2'] = df.MineNetback.shift(lag2)
+        df['lag3'] = df.MineNetback.shift(lag3)
+
+        df['std1'] = df.lag1.rolling(window=std_window1).std()
+        df['std2'] = df.lag2.rolling(window=std_window2).std()
+        df['std3'] = df.lag3.rolling(window=std_window3).std()
+
+        return df
+
+    @property
     def get_natural_gas(self):
         ng_std_window = 6
         file_name = 'Natural_Gas_Steo.xlsx'
@@ -170,6 +194,15 @@ class DataFeed:
         
         f[f'std_{std_total}'] = f.TotalCost.ewm(span=std_total,min_periods=std_total).std()
         return f
+
+    @property
+    def get_interimPricing(self):
+        std_window = 12
+        file_name = 'InterimPricing.xlsx'
+        src_file = os.path.join(self.src,file_name)
+        df = pd.read_excel(src_file,index_col=0, parse_dates=True)
+        df[f'std_{std_window}'] = df.InterimPricing.rolling(window=std_window).std()
+        return df
 
     @property
     def get_POT_price(self):

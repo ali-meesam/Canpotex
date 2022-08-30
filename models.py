@@ -80,6 +80,14 @@ class SourceModel(DataFeed):
             r: standard deviation / +/- number"""
         return np.random.triangular(val-r,val,val+r)
 
+    def war_dummy(self):
+        try:
+            if self.month>=1 and self.year>2021:
+                return 1*self.WarDummy
+            else:
+                return 0
+        except:
+            return 0
 
 class BrazilCFR(SourceModel):
     def __init__(self) -> None:
@@ -277,8 +285,9 @@ class MineNetBack(SourceModel):
         print(f"Max Density -->>> ${prediction}")
         return prediction
 
-class ActualNetback:
+class ActualNetback(SourceModel):
     def __init__(self) -> None:
+        SourceModel.__init__(self)
         self.MineNetback = 0.41
         self.MineNetback_1 = -0.14
         self.MineNetback_6 = -0.13
@@ -286,17 +295,43 @@ class ActualNetback:
         self.Q1Dummy = 2.84
         self.Q2Dummy = 0.00
         self.Q3Dummy = -1.30
+        self.Q4Dummy = 0
         self.Interim = 0.84
+        
+    def predict(self):
+        mineNetback_predict = MineNetBack().predict()
+        warDummy = self.war_dummy()
+        qDummy = self.quarterly_dummy()
+        mine_netbacks = self.get_historical_mineNetback.iloc[-1]
+        interim = self.get_interimPricing.iloc[-1]
 
+        actuals = []
+        for i in tqdm(range(self.simulations)):
+            interim0m = self.tri_distribute(interim.InterimPricing,interim.std_12)
+            mine0m = self.tri_distribute(mineNetback_predict,mine_netbacks.std1)
+            mine1m = self.tri_distribute(mine_netbacks.lag2,mine_netbacks.std2)
+            mine6m = self.tri_distribute(mine_netbacks.lag3,mine_netbacks.std3)
+            actuals.append(interim0m*self.Interim + mine0m*self.MineNetback + mine1m*self.MineNetback_1 + mine6m*self.MineNetback_6 + warDummy *  qDummy)
+        pred_df = pd.DataFrame(actuals,columns=['Predictions'])
+        print("*"*50)
+        print(pred_df.describe())
+        print("*"*50)
+        pred_df.plot(kind='hist',bins=100,title=f'Actual Netback - {self.simulations} Iterations');
+        plt.show()
+        prediction = round(self.kde_max_density(pred_df)['Predictions'],2)
+        print(f"Max Density -->>> ${prediction}")
+        return prediction
         
 
 if __name__=='__main__':
-    print("="*100)
-    print("BRAZIL MODEL")
-    m = BrazilCFR()
+    # print("="*100)
+    # print("BRAZIL MODEL")
+    # m = BrazilCFR()
+    # m.predict()
+    # print("="*100)
+    # print("SE ASIA MODEL")
+    # m = SEAsiaCFR()
+    # m.predict()
+    m = ActualNetback()
     m.predict()
-    print("="*100)
-    print("SE ASIA MODEL")
-    m = SEAsiaCFR()
-    m.predict()
-    
+
