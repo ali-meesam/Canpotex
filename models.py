@@ -11,11 +11,9 @@ plt.style.use('dark_background')
 class SourceModel(DataFeed):
     def __init__(self) -> None:
         DataFeed.__init__(self)
+        
         self.simulations = 20000
-        self.month = datetime.now().month
-        self.month = 7
-        self.year = datetime.now().year
-        self.quarter = (self.month-1)//3 + 1
+        
 
     @staticmethod
     def kde_max_density(_df):
@@ -71,12 +69,16 @@ class SourceModel(DataFeed):
     def quarterly_dummy(self,month:int=0):
         if month!=0:
             self.quarter = (self.month-1)//3 + 1
-        q1 = 1*self.dq1 if self.quarter == 1 else 0
-        q2 = 1*self.dq2 if self.quarter == 2 else 0
-        q3 = 1*self.dq3 if self.quarter == 3 else 0
-        q4 = 1*self.dq4 if self.quarter == 4 else 0
+        q1 = 1*self.Q1Dummy if self.quarter == 1 else 0
+        q2 = 1*self.Q2Dummy if self.quarter == 2 else 0
+        q3 = 1*self.Q3Dummy if self.quarter == 3 else 0
+        q4 = 1*self.Q4Dummy if self.quarter == 4 else 0
         return q1+q2+q3+q4
 
+    def tri_distribute(self,val, r):
+        """val: mode >> middle value
+            r: standard deviation / +/- number"""
+        return np.random.triangular(val-r,val,val+r)
 
 
 class BrazilCFR(SourceModel):
@@ -232,6 +234,7 @@ class SEAsiaCFR(SourceModel):
 class MineNetBack(SourceModel):
     def __init__(self) -> None:
         SourceModel.__init__(self)
+
         self.const = -18.33
         self.Q1Dummy = -7.16
         self.Q2Dummy = 1.25
@@ -241,6 +244,38 @@ class MineNetBack(SourceModel):
         self.FreightCost = -0.22
         self.SEAsia = 0.49
         self.BrazilCFR = 0.37
+
+    def predict(self):
+        # SE ASIA
+        seasia_predict = SEAsiaCFR().predict()
+        seasia_std = self.get_SEAsiaCFR.std_12.iloc[-1] 
+        # BRAZIL
+        brazil_predict = BrazilCFR().predict()
+        brazil_std = self.get_BrazilCFR.std_12.iloc[-1]
+
+        const = self.const
+        quarterdummy = self.quarterly_dummy()
+        ethanol = self.get_ethanol.iloc[-1]
+
+        freightCost = self.get_freightCost.iloc[-1]
+
+        mine_netbacks = []
+        for i in tqdm(range(self.simulations)):
+            seasia0m = self.tri_distribute(seasia_predict,seasia_std)
+            brazil0m = self.tri_distribute(brazil_predict,brazil_std)
+            ethanol0m = self.tri_distribute(ethanol.E85,ethanol.std_12)
+            freightCost0m = self.tri_distribute(freightCost.TotalCost,freightCost.std_8)
+            mine_netbacks.append(const + quarterdummy + ethanol0m*self.EIAE85 + freightCost0m*self.FreightCost + seasia0m*self.SEAsia + brazil0m*self.BrazilCFR)
+
+        pred_df = pd.DataFrame(mine_netbacks,columns=['Predictions'])
+        print("*"*50)
+        print(pred_df.describe())
+        print("*"*50)
+        pred_df.plot(kind='hist',bins=100,title=f'Mine Netback - {self.simulations} Iterations');
+        plt.show()
+        prediction = round(self.kde_max_density(pred_df)['Predictions'],2)
+        print(f"Max Density -->>> ${prediction}")
+        return prediction
 
 class ActualNetback:
     def __init__(self) -> None:

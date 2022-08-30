@@ -1,9 +1,18 @@
 import os 
 import pandas as pd
+from datetime import datetime
+
 
 class DataFeed:
     def __init__(self) -> None:
         self.src = "DataFeeds"
+        self.year = datetime.now().year
+        self.year = 2022
+
+        self.month = datetime.now().month
+        self.month = 7
+        
+        self.quarter = (self.month-1)//3 + 1
         
     @property
     def get_BrazilCFR(self):
@@ -108,6 +117,38 @@ class DataFeed:
         return df
 
     @property
+    def get_ethanol(self):
+        # Ethanol >> Quarterly Data to Monthly
+        eth_std_window = 12
+        file_name = 'E85.xlsx'
+        src_file = os.path.join(self.src,file_name)
+        f = pd.read_excel(src_file,index_col=0, parse_dates=True)
+        f[f'std_{eth_std_window}'] = f.E85.rolling(window=eth_std_window).std()
+        d = f.resample('M').last()
+        d.ffill(inplace=True)
+
+        x = d.iloc[-1]
+
+        addition = []
+        if x.name.year==self.year and x.name.month <self.month:
+            m_delta = self.month - x.name.month
+            month = x.name.month
+            eth_price = x.E85
+            eth_std = x.std_12
+            for _i in range(m_delta):
+                month += 1    
+                addition.append([datetime(year=self.year,month=month,day=1), eth_price, eth_std])
+        addition
+
+        new_df = pd.DataFrame(addition,columns = ['Survey Start Date','E85'	,f'std_{eth_std_window}'])
+
+        new_df.set_index('Survey Start Date',inplace=True)
+
+        df = pd.concat([d,new_df])
+
+        return df
+
+    @property
     def get_total_fertilizer_production(self):
         fertprodquad_std_window = 60
         fertprod_std_window = 60
@@ -117,6 +158,17 @@ class DataFeed:
         f['FertProdQuad'] = f['Total Fertilizer Production']**2
         f[f'std_quad_{fertprodquad_std_window}'] = f['FertProdQuad'].rolling(window=fertprodquad_std_window).std()
         f[f'std_{fertprod_std_window}'] = f['Total Fertilizer Production'].rolling(window=fertprod_std_window).std()
+        return f
+    
+    @property
+    def get_freightCost(self):
+        std_total = 8
+        file_name = 'FreightCost.xlsx'
+        src_file = os.path.join(self.src,file_name)
+        f = pd.read_excel(src_file,index_col=0, parse_dates=True)
+        f['TotalCost'] = f.sum(axis=1)
+        
+        f[f'std_{std_total}'] = f.TotalCost.ewm(span=std_total,min_periods=std_total).std()
         return f
 
     @property
