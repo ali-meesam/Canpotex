@@ -11,7 +11,6 @@ plt.style.use('dark_background')
 class SourceModel(DataFeed):
     def __init__(self) -> None:
         DataFeed.__init__(self)
-        
         self.simulations = 20000
         
 
@@ -261,7 +260,7 @@ class MineNetBack(SourceModel):
         brazil_std = self.get_BrazilCFR.std_1.iloc[-1]
 
         const = self.const
-        quarterdummy = self.quarterly_dummy()
+        quarterdummy = self.quarterly_dummy(self.month)
         ethanol = self.get_ethanol.iloc[-1]
 
         freightCost = self.get_freightCost.iloc[-1]
