@@ -150,15 +150,14 @@ class BrazilCFR(SourceModel):
 
         brazil_latest_cfr = []
         for _ in tqdm(range(self.simulations)):
-            fao2m = np.random.triangular(f.fao_2m-f.std_2m_8,f.fao_2m,f.fao_2m+f.std_2m_8)
-            fao3m = np.random.triangular(f.fao_3m-f.std_3m_6,f.fao_3m,f.fao_3m+f.std_3m_6)
-            fao6m = np.random.triangular(f.fao_6m-f.std_6m_3,f.fao_6m,f.fao_6m+f.std_6m_3)
-            e0m = np.random.triangular(e['Adj Close']-e.std_3,e['Adj Close'],e['Adj Close']+e.std_3)
-            fert0m = np.random.triangular(fert.FertProdQuad-fert.std_quad_60,fert.FertProdQuad,fert.FertProdQuad+fert.std_quad_60)
-            ig200m = np.random.triangular(ig20.G20CPI-ig20.std_6,ig20.G20CPI,ig20.G20CPI+ig20.std_6)
-            g0m = np.random.triangular(g.GDPQXUS-g.std_48,g.GDPQXUS,g.GDPQXUS+g.std_48)
-            b0m = np.random.triangular(b.BrazilCFR-b.std_12,b.BrazilCFR,b.BrazilCFR+b.std_12)
-
+            fao2m = self.tri_distribute(f.lag1,f.std1)
+            fao3m = self.tri_distribute(f.lag2,f.std2)
+            fao6m = self.tri_distribute(f.lag3,f.std3)
+            e0m = self.tri_distribute(e['Adj Close'],e.std_1)
+            fert0m = self.tri_distribute(fert.FertProdQuad-fert.std_quad)
+            ig200m = self.tri_distribute(ig20.G20CPI,ig20.std_1)
+            g0m = self.tri_distribute(g.GDPQXUS,g.std_1)
+            b0m = self.tri_distribute(b.BrazilCFR,b.std_1)
             brazil_latest_cfr.append(dm + const + self.FAOPriceIndex_2*fao2m + self.FAOPriceIndex_3*fao3m + self.FAOPriceIndex_6*fao6m + self.USDEURO*e0m + self.FertProdQuad*fert0m + self.G20Inflation*ig200m + self.USGDP*g0m + self.BrazilCFR_1*b0m)
 
         pred_df = pd.DataFrame(brazil_latest_cfr,columns=['Predictions'])
@@ -214,16 +213,16 @@ class SEAsiaCFR(SourceModel):
         e = eurusd[(eurusd.index.month==self.month) & (eurusd.index.year==self.year)].iloc[-1]
         # FERTILIZER PRODUCTION
         fert = fertprod[(fertprod.index.month==self.month) & (fertprod.index.year==self.year)].iloc[-1]
-        # BRAZIL CFR
+        # SEAsia CFR
         s = seasia_cfr.iloc[-1]
 
         seasia_latest_cfr = []
         for i in tqdm(range(self.simulations)):
-            ng0m = np.random.triangular(n.NGHHUUS-n.std_6,n.NGHHUUS,n.NGHHUUS+n.std_6)
-            g0m = np.random.triangular(g.GDPQXUS-g.std_48,g.GDPQXUS,g.GDPQXUS+g.std_48)
-            e0m = np.random.triangular(e['Adj Close']-e.std_3,e['Adj Close'],e['Adj Close']+e.std_3)
-            fert0m = np.random.triangular(fert['Total Fertilizer Production']-fert.std_60,fert['Total Fertilizer Production'],fert['Total Fertilizer Production']+fert.std_60)
-            s0m = np.random.triangular(s.SEAsia-s.std_12,s.SEAsia,s.SEAsia+s.std_12)
+            ng0m = self.tri_distribute(n.NGHHUUS,n.std_1)
+            g0m = self.tri_distribute(g.GDPQXUS,g.std_1)
+            e0m = self.tri_distribute(e['Adj Close'],e.std_1)
+            fert0m = self.tri_distribute(fert['Total Fertilizer Production'],fert.std_1)
+            s0m = self.tri_distribute(s.SEAsia,s.std_1)
             result =dm + const + self.HHNaturalGasPrice* ng0m + self.USGDP*g0m + self.USDEURO*e0m + self.TotalFertilizerProduction*fert0m + self.SEAsia_1 *s0m
             seasia_latest_cfr.append(result)
 
@@ -256,10 +255,10 @@ class MineNetBack(SourceModel):
     def predict(self):
         # SE ASIA
         seasia_predict = SEAsiaCFR().predict()
-        seasia_std = self.get_SEAsiaCFR.std_12.iloc[-1] 
+        seasia_std = self.get_SEAsiaCFR.std_1.iloc[-1] 
         # BRAZIL
         brazil_predict = BrazilCFR().predict()
-        brazil_std = self.get_BrazilCFR.std_12.iloc[-1]
+        brazil_std = self.get_BrazilCFR.std_1.iloc[-1]
 
         const = self.const
         quarterdummy = self.quarterly_dummy()
@@ -271,8 +270,8 @@ class MineNetBack(SourceModel):
         for i in tqdm(range(self.simulations)):
             seasia0m = self.tri_distribute(seasia_predict,seasia_std)
             brazil0m = self.tri_distribute(brazil_predict,brazil_std)
-            ethanol0m = self.tri_distribute(ethanol.E85,ethanol.std_12)
-            freightCost0m = self.tri_distribute(freightCost.TotalCost,freightCost.std_8)
+            ethanol0m = self.tri_distribute(ethanol.E85,ethanol.std_1)
+            freightCost0m = self.tri_distribute(freightCost.TotalCost,freightCost.std_1)
             mine_netbacks.append(const + quarterdummy + ethanol0m*self.EIAE85 + freightCost0m*self.FreightCost + seasia0m*self.SEAsia + brazil0m*self.BrazilCFR)
 
         pred_df = pd.DataFrame(mine_netbacks,columns=['Predictions'])
@@ -307,7 +306,7 @@ class ActualNetback(SourceModel):
 
         actuals = []
         for i in tqdm(range(self.simulations)):
-            interim0m = self.tri_distribute(interim.InterimPricing,interim.std_12)
+            interim0m = self.tri_distribute(interim.InterimPricing,interim.std_1)
             mine0m = self.tri_distribute(mineNetback_predict,mine_netbacks.std1)
             mine1m = self.tri_distribute(mine_netbacks.lag2,mine_netbacks.std2)
             mine6m = self.tri_distribute(mine_netbacks.lag3,mine_netbacks.std3)

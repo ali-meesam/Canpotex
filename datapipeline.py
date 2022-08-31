@@ -22,7 +22,7 @@ class DataFeed:
         file_name = 'BrazilCFR.xlsx'
         src_file = os.path.join(self.src,file_name)
         b = pd.read_excel(src_file,index_col=0, parse_dates=True)
-        b[f'std_{brazilcfr_std_window}'] = b['BrazilCFR'].rolling(window=brazilcfr_std_window).std()
+        b[f'std_1'] = b['BrazilCFR'].rolling(window=brazilcfr_std_window).std()
         return b
 
     @property
@@ -33,7 +33,7 @@ class DataFeed:
         file_name = 'SEAsiaCFR.xlsx'
         src_file = os.path.join(self.src,file_name)
         s = pd.read_excel(src_file,index_col=0, parse_dates=True)
-        s[f'std_{seasiacfr_std_window}'] = s['SEAsia'].rolling(window=seasiacfr_std_window).std()
+        s[f'std_1'] = s['SEAsia'].rolling(window=seasiacfr_std_window).std()
         return s
 
     @property
@@ -43,25 +43,25 @@ class DataFeed:
         src_file = os.path.join(self.src,file_name)
         f = pd.read_excel(src_file,index_col=0, parse_dates=True)
         # LAGS
-        foa_lag1 = 2 #months
-        fao_lag2 = 3 #months
-        fao_lag3 = 6 #months
+        lag1 = 2 #months
+        lag2 = 3 #months
+        lag3 = 6 #months
 
         # Volatility Window
-        fao_std_window1 = 8 #corresponds to lag # 1
-        fao_std_window2 = 6 #corresponds to lag # 2
-        fao_std_window3 = 3 #corresponds to lag # 3
+        std1 = 8 #corresponds to lag # 1
+        std2 = 6 #corresponds to lag # 2
+        std3 = 3 #corresponds to lag # 3
 
 
         # Adding lag
-        f[f'fao_{foa_lag1}m'] = f['Food Price Index'].shift(foa_lag1).values
-        f[f'fao_{fao_lag2}m'] = f['Food Price Index'].shift(fao_lag2).values
-        f[f'fao_{fao_lag3}m'] = f['Food Price Index'].shift(fao_lag3).values
+        f[f'lag1'] = f['Food Price Index'].shift(lag1).values
+        f[f'lag2'] = f['Food Price Index'].shift(lag2).values
+        f[f'lag3'] = f['Food Price Index'].shift(lag3).values
 
         # Adding volatility
-        f[f'std_{foa_lag1}m_{fao_std_window1}'] = f[f'fao_{foa_lag1}m'].rolling(window=fao_std_window1).std()
-        f[f'std_{fao_lag2}m_{fao_std_window2}'] = f[f'fao_{fao_lag2}m'].rolling(window=fao_std_window2).std()
-        f[f'std_{fao_lag3}m_{fao_std_window3}'] = f[f'fao_{fao_lag3}m'].rolling(window=fao_std_window3).std()
+        f[f'std1'] = f[f'lag1'].rolling(window=std1).std()
+        f[f'std2'] = f[f'lag2'].rolling(window=std2).std()
+        f[f'std3'] = f[f'lag3'].rolling(window=std3).std()
         return f
 
     @property
@@ -70,7 +70,7 @@ class DataFeed:
         file_name = 'EURUSD=X.csv'
         src_file = os.path.join(self.src,file_name)
         e = pd.read_csv(src_file,index_col=0, parse_dates=True)
-        e[f'std_{eurusd_std_window}'] = e['Adj Close'].rolling(window=eurusd_std_window).std()
+        e[f'std1'] = e['Adj Close'].rolling(window=eurusd_std_window).std()
         return e
 
 
@@ -80,7 +80,7 @@ class DataFeed:
         file_name = 'G20CPI.xlsx'
         src_file = os.path.join(self.src,file_name)
         i = pd.read_excel(src_file,index_col=0, parse_dates=True)
-        i[f'std_{inflation_std_window}'] = i['G20CPI'].rolling(window=inflation_std_window).std()
+        i[f'std_1'] = i['G20CPI'].rolling(window=inflation_std_window).std()
         return i
 
     @property
@@ -93,7 +93,7 @@ class DataFeed:
         df['Date'] = pd.to_datetime(df.Month+"-"+df.Year.apply(lambda x:str(x)))
         df = df[['Date','GDPQXUS']]
         df.set_index('Date',inplace=True)
-        df[f'std_{gdp_std_window}']=df['GDPQXUS'].rolling(window=gdp_std_window).std()
+        df[f'std_1']=df['GDPQXUS'].rolling(window=gdp_std_window).std()
         return df
 
 
@@ -137,7 +137,7 @@ class DataFeed:
         df['Date'] = pd.to_datetime(df.Month+"-"+df.Year.apply(lambda x:str(x)))
         df = df[['Date','NGHHUUS']]
         df.set_index('Date',inplace=True)
-        df[f'std_{ng_std_window}'] = df['NGHHUUS'].rolling(window=ng_std_window).std()
+        df[f'std_1'] = df['NGHHUUS'].rolling(window=ng_std_window).std()
         return df
 
     @property
@@ -147,7 +147,7 @@ class DataFeed:
         file_name = 'E85.xlsx'
         src_file = os.path.join(self.src,file_name)
         f = pd.read_excel(src_file,index_col=0, parse_dates=True)
-        f[f'std_{eth_std_window}'] = f.E85.rolling(window=eth_std_window).std()
+        f[f'std_1'] = f.E85.rolling(window=eth_std_window).std()
         d = f.resample('M').last()
         d.ffill(inplace=True)
 
@@ -158,13 +158,13 @@ class DataFeed:
             m_delta = self.month - x.name.month
             month = x.name.month
             eth_price = x.E85
-            eth_std = x.std_12
+            eth_std = x.std_1
             for _i in range(m_delta):
                 month += 1    
                 addition.append([datetime(year=self.year,month=month,day=1), eth_price, eth_std])
         addition
 
-        new_df = pd.DataFrame(addition,columns = ['Survey Start Date','E85'	,f'std_{eth_std_window}'])
+        new_df = pd.DataFrame(addition,columns = ['Survey Start Date','E85'	,f'std_1'])
 
         new_df.set_index('Survey Start Date',inplace=True)
 
@@ -180,8 +180,8 @@ class DataFeed:
         src_file = os.path.join(self.src,file_name)
         f = pd.read_excel(src_file,index_col=0, parse_dates=True)
         f['FertProdQuad'] = f['Total Fertilizer Production']**2
-        f[f'std_quad_{fertprodquad_std_window}'] = f['FertProdQuad'].rolling(window=fertprodquad_std_window).std()
-        f[f'std_{fertprod_std_window}'] = f['Total Fertilizer Production'].rolling(window=fertprod_std_window).std()
+        f[f'std_quad'] = f['FertProdQuad'].rolling(window=fertprodquad_std_window).std()
+        f[f'std_1'] = f['Total Fertilizer Production'].rolling(window=fertprod_std_window).std()
         return f
     
     @property
@@ -192,7 +192,7 @@ class DataFeed:
         f = pd.read_excel(src_file,index_col=0, parse_dates=True)
         f['TotalCost'] = f.sum(axis=1)
         
-        f[f'std_{std_total}'] = f.TotalCost.ewm(span=std_total,min_periods=std_total).std()
+        f[f'std_1'] = f.TotalCost.ewm(span=std_total,min_periods=std_total).std()
         return f
 
     @property
@@ -201,7 +201,7 @@ class DataFeed:
         file_name = 'InterimPricing.xlsx'
         src_file = os.path.join(self.src,file_name)
         df = pd.read_excel(src_file,index_col=0, parse_dates=True)
-        df[f'std_{std_window}'] = df.InterimPricing.rolling(window=std_window).std()
+        df[f'std_1'] = df.InterimPricing.rolling(window=std_window).std()
         return df
 
     @property
