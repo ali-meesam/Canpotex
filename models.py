@@ -154,7 +154,7 @@ class BrazilCFR(SourceModel):
             fao3m = self.tri_distribute(f.lag2,f.std2)
             fao6m = self.tri_distribute(f.lag3,f.std3)
             e0m = self.tri_distribute(e['Adj Close'],e.std_1)
-            fert0m = self.tri_distribute(fert.FertProdQuad-fert.std_quad)
+            fert0m = self.tri_distribute(fert.FertProdQuad,fert.std_quad)
             ig200m = self.tri_distribute(ig20.G20CPI,ig20.std_1)
             g0m = self.tri_distribute(g.GDPQXUS,g.std_1)
             b0m = self.tri_distribute(b.BrazilCFR,b.std_1)

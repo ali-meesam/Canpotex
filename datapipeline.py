@@ -70,7 +70,7 @@ class DataFeed:
         file_name = 'EURUSD=X.csv'
         src_file = os.path.join(self.src,file_name)
         e = pd.read_csv(src_file,index_col=0, parse_dates=True)
-        e[f'std1'] = e['Adj Close'].rolling(window=eurusd_std_window).std()
+        e[f'std_1'] = e['Adj Close'].rolling(window=eurusd_std_window).std()
         return e
 
 
