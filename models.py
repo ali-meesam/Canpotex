@@ -67,7 +67,10 @@ class SourceModel(DataFeed):
     
     def quarterly_dummy(self,month:int=0):
         if month!=0:
-            self.quarter = (self.month-1)//3 + 1
+            self.month = month
+        # GET THE QUARTER
+        self.quarter = (self.month-1)//3 + 1
+        # FIND THE Q DUMMY IMPACT
         q1 = 1*self.Q1Dummy if self.quarter == 1 else 0
         q2 = 1*self.Q2Dummy if self.quarter == 2 else 0
         q3 = 1*self.Q3Dummy if self.quarter == 3 else 0
@@ -121,7 +124,13 @@ class BrazilCFR(SourceModel):
         ########################################
         self.BrazilCFR_1 = 0.916783965
     
-    def predict(self):
+    def predict(self,month:int=None,year:int=None):
+        if month:
+            self.month=month
+        if year:
+            self.year = year
+        
+        print(f"Predicting Brazil >> {self.month} / {self.year}...")
         # get DATA
         fao = self.get_food_price_index
         eurusd = self.get_eurusd
@@ -130,7 +139,7 @@ class BrazilCFR(SourceModel):
         gdp = self.get_gdp
         brazil_cfr = self.get_BrazilCFR
 
-        dm = self.monthly_dummy()
+        dm = self.monthly_dummy(month)
         const = self.const
         
         # LATEST ENTRY ONLY
@@ -193,7 +202,13 @@ class SEAsiaCFR(SourceModel):
         self.SEAsia_1 = 0.9583022
 
     
-    def predict(self):
+    def predict(self,month:int=None,year:int=None):
+        if month:
+            self.month = month
+        if year:
+            self.year = year
+
+        print(f"Predicting SE Asia >> {self.month} / {self.year}...")
         # get DATA
         naturalgas = self.get_natural_gas
         gdp = self.get_gdp
@@ -201,7 +216,7 @@ class SEAsiaCFR(SourceModel):
         fertprod = self.get_total_fertilizer_production
         seasia_cfr = self.get_SEAsiaCFR
 
-        dm = self.monthly_dummy()
+        dm = self.monthly_dummy(month)
         const = self.const
         # LATEST ENTRY ONLY
         # Natural Gas
@@ -213,7 +228,7 @@ class SEAsiaCFR(SourceModel):
         # FERTILIZER PRODUCTION
         fert = fertprod[(fertprod.index.month==self.month) & (fertprod.index.year==self.year)].iloc[-1]
         # SEAsia CFR
-        s = seasia_cfr.iloc[-1]
+        s = seasia_cfr[(seasia_cfr.index.month==self.month) & (seasia_cfr.index.year==self.year)].iloc[-1]
 
         seasia_latest_cfr = []
         for i in tqdm(range(self.simulations)):
@@ -251,19 +266,34 @@ class MineNetBack(SourceModel):
         self.SEAsia = 0.49
         self.BrazilCFR = 0.37
 
-    def predict(self):
+    def predict(self,month:int=None, year:int=None):
+        if month:
+            self.month=month
+        if year:
+            self.year = year
+        print(f"Predicting MineNetback >> {self.month} / {self.year}...")
         # SE ASIA
-        seasia_predict = SEAsiaCFR().predict()
-        seasia_std = self.get_SEAsiaCFR.std_1.iloc[-1] 
+        seasia_predict = SEAsiaCFR().predict(month=month,year=year)
+        seasia_cfr = self.get_SEAsiaCFR
+        seasia_std = seasia_cfr[(seasia_cfr.index.month==self.month) & (seasia_cfr.index.year==self.year)].std_1.iloc[-1]
+        
         # BRAZIL
-        brazil_predict = BrazilCFR().predict()
-        brazil_std = self.get_BrazilCFR.std_1.iloc[-1]
-
+        brazil_predict = BrazilCFR().predict(month=month,year=year)
+        brazil_cfr = self.get_BrazilCFR 
+        brazil_std = brazil_cfr[(brazil_cfr.index.month==self.month) & (brazil_cfr.index.year==self.year)].std_1.iloc[-1]
+        
+        # ETHANOL
+        ethanol = self.get_ethanol
+        ethanol = ethanol[(ethanol.index.month==self.month) & (ethanol.index.year==self.year)].iloc[-1]
+        
+        # FREIGHT COST
+        freightCost = self.get_freightCost
+        freightCost = freightCost[(freightCost.index.month==self.month) & (freightCost.index.year==self.year)].iloc[-1]
+        
+        # CONST
         const = self.const
+        # Quarter DUMMY
         quarterdummy = self.quarterly_dummy(self.month)
-        ethanol = self.get_ethanol.iloc[-1]
-
-        freightCost = self.get_freightCost.iloc[-1]
 
         mine_netbacks = []
         for i in tqdm(range(self.simulations)):
@@ -296,12 +326,23 @@ class ActualNetback(SourceModel):
         self.Q4Dummy = 0
         self.Interim = 0.84
         
-    def predict(self):
-        mineNetback_predict = MineNetBack().predict()
+    def predict(self,month:int=None, year:int=None):
+        if month:
+            self.month=month
+        if year:
+            self.year = year
+        print(f"Predicting Actual Netback >> {self.month} / {self.year}...")
+        # WAR DUMMY
         warDummy = self.war_dummy()
-        qDummy = self.quarterly_dummy()
-        mine_netbacks = self.get_historical_mineNetback.iloc[-1]
-        interim = self.get_interimPricing.iloc[-1]
+        # Q DUMMY
+        qDummy = self.quarterly_dummy(month=month)
+        # MINE NETBACK
+        mineNetback_predict = MineNetBack().predict(month=month,year=year)
+        mine_netbacks = self.get_historical_mineNetback
+        mine_netbacks = mine_netbacks[(mine_netbacks.index.month==self.month) & (mine_netbacks.index.year==self.year)].iloc[-1]
+        # INTERIM PRICING
+        interim = self.get_interimPricing
+        interim = interim[(interim.index.month==self.month) & (interim.index.year==self.year)].iloc[-1]
 
         actuals = []
         for i in tqdm(range(self.simulations)):
@@ -330,6 +371,8 @@ if __name__=='__main__':
     # print("SE ASIA MODEL")
     # m = SEAsiaCFR()
     # m.predict()
-    m = ActualNetback()
-    m.predict()
+    _month = int(input("Enter a month: "))
+    _year = int(input("Enter a year: "))
 
+    m = ActualNetback()
+    m.predict(_month,_year)

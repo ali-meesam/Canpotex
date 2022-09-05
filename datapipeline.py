@@ -6,10 +6,10 @@ from datetime import datetime
 class DataFeed:
     def __init__(self) -> None:
         self.src = "DataFeeds"
-        self.year = datetime.now().year
+        # self.year = datetime.now().year
         self.year = 2022
 
-        self.month = datetime.now().month
+        # self.month = datetime.now().month
         self.month = 7
         
         self.quarter = (self.month-1)//3 + 1
