@@ -13,6 +13,13 @@ class DataFeed:
         self.month = 7
         
         self.quarter = (self.month-1)//3 + 1
+    
+    @staticmethod
+    def check_floats(x):
+        try:
+            return float(x)
+        except:
+            return None
         
     @property
     def get_BrazilCFR(self):
@@ -64,13 +71,28 @@ class DataFeed:
         f[f'std3'] = f[f'lag3'].rolling(window=std3).std()
         return f
 
+    # @property
+    # def get_eurusd(self):
+    #     eurusd_std_window = 3
+    #     file_name = 'EURUSD=X.csv'
+    #     src_file = os.path.join(self.src,file_name)
+    #     e = pd.read_csv(src_file,index_col=0, parse_dates=True)
+    #     e[f'std_1'] = e['Adj Close'].rolling(window=eurusd_std_window).std()
+    #     return e
+
     @property
     def get_eurusd(self):
+        # EUR USD
         eurusd_std_window = 3
-        file_name = 'EURUSD=X.csv'
+        file_name = 'DEXUSEU.csv'
         src_file = os.path.join(self.src,file_name)
         e = pd.read_csv(src_file,index_col=0, parse_dates=True)
-        e[f'std_1'] = e['Adj Close'].rolling(window=eurusd_std_window).std()
+        e.DEXUSEU = e.DEXUSEU.apply(self.check_floats)
+        # DROP ALL NON FLOAT VALUES
+        e.dropna(inplace=True)
+        # Taking the mean for the month resample (instead of the last price)
+        e = e.resample('1M').mean()
+        e[f'std_1'] = e['DEXUSEU'].rolling(window=eurusd_std_window).std()
         return e
 
 

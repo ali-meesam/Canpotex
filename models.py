@@ -152,7 +152,7 @@ class BrazilCFR(SourceModel):
             fao2m = self.tri_distribute(f.lag1,f.std1)
             fao3m = self.tri_distribute(f.lag2,f.std2)
             fao6m = self.tri_distribute(f.lag3,f.std3)
-            e0m = self.tri_distribute(e['Adj Close'],e.std_1)
+            e0m = self.tri_distribute(e['DEXUSEU'],e.std_1)
             fert0m = self.tri_distribute(fert.FertProdQuad,fert.std_quad)
             ig200m = self.tri_distribute(ig20.G20CPI,ig20.std_1)
             g0m = self.tri_distribute(g.GDPQXUS,g.std_1)
@@ -164,7 +164,7 @@ class BrazilCFR(SourceModel):
         print(pred_df.describe())
         print("*"*50)
         pred_df.plot(kind='hist',bins=100,title=f'Brazil CFR - {self.simulations} Iterations');
-        plt.show()
+        # plt.show()
         prediction = round(self.kde_max_density(pred_df)['Predictions'],2)
         print(f"Max Density -->>> ${prediction}")
         return prediction
@@ -219,7 +219,7 @@ class SEAsiaCFR(SourceModel):
         for i in tqdm(range(self.simulations)):
             ng0m = self.tri_distribute(n.NGHHUUS,n.std_1)
             g0m = self.tri_distribute(g.GDPQXUS,g.std_1)
-            e0m = self.tri_distribute(e['Adj Close'],e.std_1)
+            e0m = self.tri_distribute(e['DEXUSEU'],e.std_1)
             fert0m = self.tri_distribute(fert['Total Fertilizer Production'],fert.std_1)
             s0m = self.tri_distribute(s.SEAsia,s.std_1)
             result =dm + const + self.HHNaturalGasPrice* ng0m + self.USGDP*g0m + self.USDEURO*e0m + self.TotalFertilizerProduction*fert0m + self.SEAsia_1 *s0m
@@ -231,7 +231,7 @@ class SEAsiaCFR(SourceModel):
         print(pred_df.describe())
         print("*"*50)
         pred_df.plot(kind='hist',bins=100,title=f'SEAsia CFR - {self.simulations} Iterations');
-        plt.show()
+        # plt.show()
         prediction = round(self.kde_max_density(pred_df)['Predictions'],2)
         print(f"Max Density -->>> ${prediction}")
         return prediction
@@ -278,7 +278,7 @@ class MineNetBack(SourceModel):
         print(pred_df.describe())
         print("*"*50)
         pred_df.plot(kind='hist',bins=100,title=f'Mine Netback - {self.simulations} Iterations');
-        plt.show()
+        # plt.show()
         prediction = round(self.kde_max_density(pred_df)['Predictions'],2)
         print(f"Max Density -->>> ${prediction}")
         return prediction
@@ -315,7 +315,7 @@ class ActualNetback(SourceModel):
         print(pred_df.describe())
         print("*"*50)
         pred_df.plot(kind='hist',bins=100,title=f'Actual Netback - {self.simulations} Iterations');
-        plt.show()
+        # plt.show()
         prediction = round(self.kde_max_density(pred_df)['Predictions'],2)
         print(f"Max Density -->>> ${prediction}")
         return prediction
