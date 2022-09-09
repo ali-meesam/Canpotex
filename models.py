@@ -92,6 +92,7 @@ class SourceModel(DataFeed):
             return 0
 
 class BrazilCFR(SourceModel):
+    
     def __init__(self) -> None:
         SourceModel.__init__(self)
         
