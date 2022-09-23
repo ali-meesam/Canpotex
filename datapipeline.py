@@ -9,8 +9,8 @@ class DataFeed:
         # self.year = datetime.now().year
         self.year = 2022
 
-        # self.month = datetime.now().month
-        self.month = 7
+        self.month = datetime.now().month
+        # self.month = 7
         
         self.quarter = (self.month-1)//3 + 1
     
@@ -84,16 +84,32 @@ class DataFeed:
     def get_eurusd(self):
         # EUR USD
         eurusd_std_window = 3
-        file_name = 'DEXUSEU.csv'
-        src_file = os.path.join(self.src,file_name)
-        e = pd.read_csv(src_file,index_col=0, parse_dates=True)
-        e.DEXUSEU = e.DEXUSEU.apply(self.check_floats)
-        # DROP ALL NON FLOAT VALUES
-        e.dropna(inplace=True)
-        # Taking the mean for the month resample (instead of the last price)
-        e = e.resample('1M').mean()
-        e[f'std_1'] = e['DEXUSEU'].rolling(window=eurusd_std_window).std()
-        return e
+        source = "OECD"
+
+        if source == 'OECD':
+            # EUR USD
+            file_name = 'EURUSD-OECD.csv'
+            src_file = os.path.join(self.src,file_name)
+            e = pd.read_csv(src_file, parse_dates=True)
+            e = e[['TIME','Value']]
+            e['TIME'] = pd.to_datetime(e['TIME'])
+            e.set_index("TIME",inplace=True)
+            e = e.resample('M').mean()
+            e.ffill(inplace=True)
+            e['std_1'] = e['Value'].rolling(window=eurusd_std_window).std()
+            e.rename(columns={"Value":"DEXUSEU"},inplace=True)
+            return e
+        elif source == 'FRED':
+            file_name = 'DEXUSEU.csv'
+            src_file = os.path.join(self.src,file_name)
+            e = pd.read_csv(src_file,index_col=0, parse_dates=True)
+            e.DEXUSEU = e.DEXUSEU.apply(self.check_floats)
+            # DROP ALL NON FLOAT VALUES
+            e.dropna(inplace=True)
+            # Taking the mean for the month resample (instead of the last price)
+            e = e.resample('1M').mean()
+            e[f'std_1'] = e['DEXUSEU'].rolling(window=eurusd_std_window).std()
+            return e
 
 
     @property
