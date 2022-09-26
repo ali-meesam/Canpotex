@@ -92,11 +92,11 @@ class DataFeed:
             src_file = os.path.join(self.src,file_name)
             e = pd.read_csv(src_file, parse_dates=True)
             e = e[['TIME','Value']]
+            e['std_1'] = e['Value'].rolling(window=eurusd_std_window).std()
             e['TIME'] = pd.to_datetime(e['TIME'])
             e.set_index("TIME",inplace=True)
             e = e.resample('M').mean()
             e.ffill(inplace=True)
-            e['std_1'] = e['Value'].rolling(window=eurusd_std_window).std()
             e.rename(columns={"Value":"DEXUSEU"},inplace=True)
             return e
         elif source == 'FRED':
