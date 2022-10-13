@@ -357,7 +357,7 @@ class ActualNetback(SourceModel):
         print(pred_df.describe())
         print("*"*50)
         pred_df.plot(kind='hist',bins=100,title=f'Actual Netback - {self.simulations} Iterations');
-        # plt.show()
+        plt.show()
         prediction = round(self.kde_max_density(pred_df)['Predictions'],2)
         print(f"Max Density -->>> ${prediction}")
         return prediction

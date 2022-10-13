@@ -1,0 +1,7 @@
+pandas==1.3.4
+fsspec
+s3fs
+fredapi
+EIA_python
+requests
+faostat
