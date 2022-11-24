@@ -5,3 +5,4 @@ fredapi
 EIA_python
 requests
 faostat
+streamlit

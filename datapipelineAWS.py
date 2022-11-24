@@ -169,8 +169,9 @@ class DataFeed:
         # READ DATA
         actual = pd.read_parquet(actual_s3_link)
         forecast = pd.read_parquet(forecast_s3_link)
-
-
+        # Adjusting for 1000s of Tons
+        forecast['TotalFertilizerForecast'] = forecast['TotalFertilizerForecast'].apply(lambda x:float(x)*1000)
+        
         # FORMAT INDEX TO #S
         actual.reset_index(inplace=True)
         # RENAME FORECAST COLUMNS
@@ -192,7 +193,6 @@ class DataFeed:
             x = consolidated.iloc[i]
             [arr.append([x.Year.replace(month=m),x.Production]) for m in range(1,13)]
         df = pd.DataFrame(arr,columns=['Date','FERT'])
-
         df.set_index("Date",inplace=True)
 
         return df
@@ -256,3 +256,46 @@ class DataFeed:
         consolidated.index.name = 'Date'
 
         return consolidated
+
+
+    @property
+    def get_fpi(self):
+        source = "FPI"
+        COMMON_COL_NAME = 'FoodPriceIndex'
+
+        a = self.src_table[self.src_table.SRC==source]
+
+        # S3 LINKS
+        actual_s3_link = self.get_s3_link(source,'A')
+        forecast_s3_link = self.get_s3_link(source,'F')
+
+        # READ DATA
+        actual = pd.read_parquet(actual_s3_link)
+        forecast = pd.read_parquet(forecast_s3_link)
+
+        # REMOVING ALL rows with NaN Values
+        actual.dropna(inplace=True)
+        forecast.dropna(inplace=True)
+
+        forecast.rename(columns={'year':'Date'},inplace=True)
+
+        averages = {int(i[0]):i[1] for i in forecast[forecast.Date>=self.year].values}
+
+        actual.date = pd.to_datetime(actual.Date)
+        actual.set_index('Date',inplace=True)
+
+        if not 'timestamp' in str(type(actual.index[0])).lower():
+            actual.index = pd.to_datetime(actual.index)
+
+        seasonality = self.get_seasonality(actual[COMMON_COL_NAME],frequency_type='m')
+
+        # INTERPOLATED SERIES WITH ACTUAL AND AVG YEARLY FORECAST DATA
+        f_series = self.yearly_average_interpolator(actual[COMMON_COL_NAME],seasonal=seasonality,averages=averages)
+
+        consolidated = pd.DataFrame()
+
+        consolidated[COMMON_COL_NAME] = f_series
+        consolidated.index.name = 'Date'
+
+        return consolidated
+
