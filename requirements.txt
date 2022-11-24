@@ -1,4 +1,6 @@
-pandas==1.3.4
+openpyxl
+pandas
+matplotlib
 fsspec
 s3fs
 fredapi
