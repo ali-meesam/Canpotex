@@ -1,0 +1,7 @@
+{
+    "model":"ploy-v1",
+    "params":["fert","fpi","usdeur","gdp","ng"],
+    "fert":{
+        "lag":[]
+    }
+}
