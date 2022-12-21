@@ -2,7 +2,7 @@ from datetime import datetime
 import pandas as pd
 import configparser
 from statsmodels.tsa.seasonal import seasonal_decompose
-
+import os
 
 class CptxHelper:
     def __init__(self,month=None, year=None) -> None:
@@ -15,7 +15,7 @@ class CptxHelper:
         self.sources = list(set(self.src_table.SRC.to_list()))
 
     def read_config(self,section,var):
-        DATA_CONFIG_PATH = 'dataConfig.cfg'
+        DATA_CONFIG_PATH = os.path.join(os.getenv("CPTX_MODEL_PATH"),'Aux','dataConfig.cfg')
         config = configparser.ConfigParser()
         # READ DATA CONFIG FILE
         config.read(DATA_CONFIG_PATH)

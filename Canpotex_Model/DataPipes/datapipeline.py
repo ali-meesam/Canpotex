@@ -2,7 +2,7 @@
 This file will contain all the data directly and indirecttly associated to Netbacck pricing Model
 """;
 
-from _helper_functions import CptxHelper
+from _cptx_helper_functions import CptxHelper
 import pandas as pd
 from datetime import datetime
 
@@ -10,6 +10,17 @@ from datetime import datetime
 class DataPipes(CptxHelper):
     def __init__(self, month=None, year=None) -> None:
         CptxHelper.__init__(self,month,year)
+
+    @property
+    def get_latest_dates(self):
+        latest_dates = {
+            "gdp": self.get_gdp.index[-1],
+            "natural_gas" : self.get_naturalgas.index[-1],
+            "fertProd": self.get_fertilizer_production.index[-1],
+            "usdeur": self.get_usdeur.index[-1],
+            'fpi': self.get_fpi.index[-1]
+        }
+        return latest_dates
 
     @property
     def get_gdp(self):
