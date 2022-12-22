@@ -21,12 +21,20 @@ pip install -r requirements.txt
 ```
 
 ADD TO PYTHON PATH FOR QUICK IMPORTS
+```
+export CPTX_MODEL_PATH="$HOME/Projects/Canpotex/Canpotex_Model"
 
+export PYTHONPATH="$PYTHONPATH:$CPTX_MODEL_PATH/"
+export PYTHONPATH="$PYTHONPATH:$CPTX_MODEL_PATH/Aux"
+export PYTHONPATH="$PYTHONPATH:$CPTX_MODEL_PATH/DataPipes"
+export PYTHONPATH="$PYTHONPATH:$CPTX_MODEL_PATH/Models"
+
+```
 
 
 AWS Setup / Access:
 * https://nutrien.service-now.com/it?sys_kb_id=c98816361b6e7344c92dfc43cd4bcb01&id=kb_article_view&sysparm_rank=1&sysparm_tsqueryId=a921e8ad47bf9950526caf57746d4391
-* From terminal
+* From terminal (1H restricted 8H sandbox access per token)
 ```
 aws-azure-login
 
