@@ -88,7 +88,7 @@ class DataFeed:
 
         if source == 'OECD':
             # EUR USD
-            file_name = 'EURUSD-OECD.csv'
+            file_name = 'EURUS@propertyD-OECD.csv'
             src_file = os.path.join(self.src,file_name)
             e = pd.read_csv(src_file, parse_dates=True)
             e = e[['TIME','Value']]

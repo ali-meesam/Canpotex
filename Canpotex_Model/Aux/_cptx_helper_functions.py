@@ -3,6 +3,11 @@ import pandas as pd
 import configparser
 from statsmodels.tsa.seasonal import seasonal_decompose
 import os
+import numpy as np
+import matplotlib.pyplot as plt
+
+plt.style.use('dark_background')
+
 
 class CptxHelper:
     def __init__(self,month=None, year=None) -> None:
@@ -13,6 +18,9 @@ class CptxHelper:
         
         self.src_table = pd.read_excel(self.read_config('S3_LINKS','s3_data_src_table'),index_col=0)
         self.sources = list(set(self.src_table.SRC.to_list()))
+        self.MainPipe = {} # Initialize for DataPipeline
+        self.simulations = 20000
+
 
     def read_config(self,section,var):
         DATA_CONFIG_PATH = os.path.join(os.getenv("CPTX_MODEL_PATH"),'Aux','dataConfig.cfg')
@@ -128,9 +136,114 @@ class CptxHelper:
             interpolate = [[interpolate[i][0],new_prices[i]] for i in range(len(interpolate))]
 
             # Add latest forecast to the series
-            ser = ser.append(pd.DataFrame(interpolate,columns =['Date','Prices']).set_index("Date")['Prices'])
+            # ser = ser.append(pd.DataFrame(interpolate,columns =['Date','Prices']).set_index("Date")['Prices'])
+            ser = pd.concat([ser,pd.DataFrame(interpolate,columns =['Date','Prices']).set_index("Date")['Prices']],axis=0, join='outer')
 
         return ser
     
     def get_s3_link(self,src_tag,type_tag):
         return self.src_table[(self.src_table.SRC==src_tag)&(self.src_table.TYPE==type_tag)]['S3 Location'].iloc[0]
+
+    @staticmethod
+    def kde_max_density(_df):
+        """
+        INPUT: DATAFRAME AND LIST OF COLUMNS TO RUN KDE ON
+        OUTPUT: MAX KDE VALUE PER COLUMN IN A DICTIONARY
+        """
+        columns = _df.columns.tolist()
+        max_density = {}
+        for column_name in columns:
+            # condition1 = column_name not in ['Close',f'delta_{_frame}', f'PercPer{_frame}']
+            # condition2 = self.time_frame not in ['1D','1M','1W']
+            # if condition1 and condition2:
+            # try:
+            ###################################################
+            
+            ax = pd.Series(_df[column_name]).plot.kde()
+            plt.close()
+            items = ax.get_children()
+            l = [items.index(i) for i in items if 'Line2D' in str(i)][0]
+            _x_ = ax.get_children()[l]._x
+            _y_ = ax.get_children()[l]._y
+            # FIND MAX Density Index
+            maximum_density = _x_[_y_.argmax()]
+            
+            # maximum_density = float(_df[column_name].mean())
+            ###################################################
+            max_density[column_name] = maximum_density
+            # except:
+            #     print(f"!!!error KDE estimation:{column_name}",end='\r')
+            #     print(" "*100,end='\r')
+        return max_density
+
+    def monthly_dummy(self,month:int=0):
+        if month!=0:
+            self.month = month
+        dm1 = 1*self.dm1 if self.month == 1 else 0
+        dm2 = 1*self.dm2 if self.month == 2 else 0
+        dm3 = 1*self.dm3 if self.month == 3 else 0
+        dm4 = 1*self.dm4 if self.month == 4 else 0
+        dm5 = 1*self.dm5 if self.month == 5 else 0
+        dm6 = 1*self.dm6 if self.month == 6 else 0
+        dm7 = 1*self.dm7 if self.month == 7 else 0
+        dm8 = 1*self.dm8 if self.month == 8 else 0
+        dm9 = 1*self.dm9 if self.month == 9 else 0
+        dm10 =1*self.dm10 if self.month == 10 else 0
+        dm11 =1*self.dm11 if self.month == 11 else 0
+        dm12 =1*self.dm12 if self.month == 12 else 0
+        monthly_dummy = dm1 + dm2+dm3+dm4+dm5+dm6+dm7+dm8+dm9+dm10+dm11+dm12
+        return monthly_dummy
+
+    
+    def quarterly_dummy(self,month:int=0):
+        if month!=0:
+            self.month = month
+        # GET THE QUARTER
+        self.quarter = (self.month-1)//3 + 1
+        # FIND THE Q DUMMY IMPACT
+        q1 = 1*self.Q1Dummy if self.quarter == 1 else 0
+        q2 = 1*self.Q2Dummy if self.quarter == 2 else 0
+        q3 = 1*self.Q3Dummy if self.quarter == 3 else 0
+        q4 = 1*self.Q4Dummy if self.quarter == 4 else 0
+        return q1+q2+q3+q4
+
+    def tri_distribute(self,val, r):
+        """val: mode >> middle value
+            r: standard deviation / +/- number"""
+        return np.random.triangular(val-r,val,val+r)
+
+
+    def war_dummy(self):
+        try:
+            if self.month>=1 and self.year>2021:
+                return 1*self.WarDummy
+            else:
+                return 0
+        except:
+            return 0
+
+        
+    @staticmethod
+    def check_floats(x):
+        try:
+            return float(x)
+        except:
+            return None
+
+
+    def add_std_lags(self,df,std_window:int,lags:str,colname='Value'):
+        """
+        df - timeseries dataframe Date Index | Value Column
+        """
+        # Get total lags
+        lags = [int(x) for x in lags.split(',')]
+
+        for i,lag in enumerate(lags):
+            if i>0:
+                
+                df[f'lag{i}'] = df.Value.shift(lag)
+                df[f"std{i}"] = df[f'lag{i}'].rolling(window=std_window).std()
+            else:
+                df[f'std'] = df[colname].rolling(window=std_window).std()
+
+        return df
