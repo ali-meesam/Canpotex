@@ -2,13 +2,15 @@ from DataPipes.model_datapipeline import DataFeed
 import tqdm
 import pandas as pd
 import numpy as np
+from types import SimpleNamespace
 
 
 class BrazilCFR(DataFeed):
     
-    def __init__(self, month, year) -> None:
+    def __init__(self, month=None, year=None) -> None:
         DataFeed.__init__(self,month=month,year=year)
-        
+        self.lagCount = self.dataFeedLags
+
         self.const = -178.690701
         ########################################
         self.FAOPriceIndex_2 = 3.4993116
@@ -20,6 +22,10 @@ class BrazilCFR(DataFeed):
         self.FertProdQuad = -9.38E-16
         ########################################
         self.G20Inflation = 8.87621401
+        ######################################## 
+        self.USGDP = 0.002946866
+        ########################################
+        self.BrazilCFR_1 = 0.916783965
         ########################################
         self.dm1 = 0
         self.dm2 = 2.032841924
@@ -33,11 +39,25 @@ class BrazilCFR(DataFeed):
         self.dm10 = 12.00694986
         self.dm11 = 6.882082759
         self.dm12 = -1.537324367
-        ########################################
-        self.USGDP = 0.002946866
-        ########################################
-        self.BrazilCFR_1 = 0.916783965
+        
     
+    @property
+    def dataFeedLags(self):
+        """make sure to account for all data feeds in this function"""
+        lags = {
+            'fpi': 3,
+            'usdeur': 0,
+            'fert':0,
+            'cpi':0,
+            'gdp' : 0,
+            'brazil':1
+
+        }
+        return SimpleNamespace(**lags)
+
+    def brazil_datafeed(self):
+        pass
+        
     def predict(self,month:int=None,year:int=None):
         if month:
             self.month=month
@@ -93,9 +113,9 @@ class BrazilCFR(DataFeed):
         return prediction
 
 
-class SEAsiaCFR(SourceModel):
-    def __init__(self) -> None:
-        SourceModel.__init__(self)
+class SEAsiaCFR(DataFeed):
+    def __init__(self,month=None,year=None) -> None:
+        DataFeed.__init__(self,month, year)
         self.const = -225.2471554
         self.HHNaturalGasPrice = 12.94327564
         self.USGDP = 0.001833302

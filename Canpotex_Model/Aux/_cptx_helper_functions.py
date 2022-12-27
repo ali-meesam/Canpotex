@@ -235,15 +235,23 @@ class CptxHelper:
         """
         df - timeseries dataframe Date Index | Value Column
         """
+        _df = df.copy()
         # Get total lags
         lags = [int(x) for x in lags.split(',')]
-
+        
+        counter = 0
         for i,lag in enumerate(lags):
-            if i>0:
-                
-                df[f'lag{i}'] = df.Value.shift(lag)
-                df[f"std{i}"] = df[f'lag{i}'].rolling(window=std_window).std()
+            # FOR ONE LAG ITEM ONLY
+            if (len(lags) ==1 or 0 not in lags) and int(lag)!=0:
+                _df[f'std'] = _df[colname].rolling(window=std_window).std()
+            
+            
+            if int(lag)>0:
+                # i = 1 if len(lags)==1 else i
+                counter+=1
+                _df[f'lag{counter}'] = _df.Value.shift(lag)
+                _df[f"std{counter}"] = _df[f'lag{counter}'].rolling(window=std_window).std()
             else:
-                df[f'std'] = df[colname].rolling(window=std_window).std()
+                _df[f'std'] = _df[colname].rolling(window=std_window).std()
 
-        return df
+        return _df

@@ -4,6 +4,7 @@ class DataFeed(DataPipes):
     def __init__(self, month=None, year=None) -> None:
         super().__init__(month, year)
 
+
     def gdp(self, std_window:int=48,lags:str='0'):
         """
         std_window: rolling standard deviation
