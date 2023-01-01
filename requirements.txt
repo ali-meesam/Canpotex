@@ -7,7 +7,4 @@ fredapi
 EIA_python
 requests
 faostat
-<<<<<<< HEAD
-=======
 streamlit
->>>>>>> f1d08d073838fe662fa6602753768c0f8f06f573

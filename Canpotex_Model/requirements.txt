@@ -5,3 +5,5 @@ matplotlib
 openpyxl
 s3fs
 plotly
+statsmodels
+pyparsing
