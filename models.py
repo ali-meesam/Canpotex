@@ -176,7 +176,8 @@ class BrazilCFR(SourceModel):
         pred_df.plot(kind='hist',bins=100,title=f'Brazil CFR - {self.simulations} Iterations');
         # plt.show()
         prediction = round(self.kde_max_density(pred_df)['Predictions'],2)
-        print(f"Max Density -->>> ${prediction}")
+        print(f"Brazil EV -->>> {self.year} {self.month} ${prediction}")
+        
         return prediction
 
 
