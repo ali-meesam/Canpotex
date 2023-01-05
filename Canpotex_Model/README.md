@@ -18,6 +18,8 @@ conda install -c conda-forge pyarrow
 conda install -c conda-forge fsspec
 
 pip install -r requirements.txt
+
+pip install --no-cache-dir ta-lib
 ```
 
 ADD TO PYTHON PATH FOR QUICK IMPORTS

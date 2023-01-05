@@ -1,9 +1,10 @@
 pandas
 datetime
-numpy
+numpy==1.23.0
 matplotlib
 openpyxl
 s3fs
 plotly
 statsmodels
 pyparsing
+tqdm
