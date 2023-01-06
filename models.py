@@ -12,7 +12,7 @@ class SourceModel(DataFeed):
     def __init__(self) -> None:
         DataFeed.__init__(self)
         self.simulations = 20000
-        
+        self.report = pd.DataFrame(columns=["Year",'Month','Model','P25','EV','P75'])
 
     @staticmethod
     def kde_max_density(_df):
@@ -131,7 +131,7 @@ class BrazilCFR(SourceModel):
         if year:
             self.year = year
         
-        print(f"Predicting Brazil >> {self.month} / {self.year}...")
+        # print(f"Predicting Brazil >> {self.month} / {self.year}...")
         # get DATA
         fao = self.get_food_price_index
         eurusd = self.get_eurusd
@@ -170,15 +170,19 @@ class BrazilCFR(SourceModel):
             brazil_latest_cfr.append(dm + const + self.FAOPriceIndex_2*fao2m + self.FAOPriceIndex_3*fao3m + self.FAOPriceIndex_6*fao6m + self.USDEURO*e0m + self.FertProdQuad*fert0m + self.G20Inflation*ig200m + self.USGDP*g0m + self.BrazilCFR_1*b0m)
 
         pred_df = pd.DataFrame(brazil_latest_cfr,columns=['Predictions'])
-        print("*"*50)
-        print(pred_df.describe())
-        print("*"*50)
+        # print("*"*50)
+        # print(pred_df.describe())
+        # print("*"*50)
         pred_df.plot(kind='hist',bins=100,title=f'Brazil CFR - {self.simulations} Iterations');
         # plt.show()
         prediction = round(self.kde_max_density(pred_df)['Predictions'],2)
         print(f"Brazil EV -->>> {self.year} {self.month} ${prediction}")
         
-        return prediction
+        p25,p75 = pred_df.quantile(q=[0.25,0.75]).Predictions.tolist()
+        
+        self.report.loc[len(self.report)+1] = [self.year, self.month, "Brazil", p25,prediction,p75]
+
+        return [self.year, self.month, "Brazil", p25,prediction,p75]
 
 
 class SEAsiaCFR(SourceModel):
@@ -210,7 +214,7 @@ class SEAsiaCFR(SourceModel):
         if year:
             self.year = year
 
-        print(f"Predicting SE Asia >> {self.month} / {self.year}...")
+        # print(f"Predicting SE Asia >> {self.month} / {self.year}...")
         # get DATA
         naturalgas = self.get_natural_gas
         gdp = self.get_gdp
@@ -244,14 +248,19 @@ class SEAsiaCFR(SourceModel):
 
         pred_df = pd.DataFrame(seasia_latest_cfr,columns=['Predictions'])
 
-        print("*"*50)
-        print(pred_df.describe())
-        print("*"*50)
+        # print("*"*50)
+        # print(pred_df.describe())
+        # print("*"*50)
         pred_df.plot(kind='hist',bins=100,title=f'SEAsia CFR - {self.simulations} Iterations');
         # plt.show()
         prediction = round(self.kde_max_density(pred_df)['Predictions'],2)
-        print(f"Max Density -->>> ${prediction}")
-        return prediction
+        print(f"SE Asia EV -->>> {self.year} {self.month} ${prediction}")
+
+        p25,p75 = pred_df.quantile(q=[0.25,0.75]).Predictions.tolist()
+        
+        self.report.loc[len(self.report)+1] = [self.year, self.month, "SEAsia", p25,prediction,p75]
+
+        return [self.year, self.month, "SEAsia", p25,prediction,p75]
 
 
 class MineNetBack(SourceModel):
@@ -273,14 +282,18 @@ class MineNetBack(SourceModel):
             self.month=month
         if year:
             self.year = year
-        print(f"Predicting MineNetback >> {self.month} / {self.year}...")
+        # print(f"Predicting MineNetback >> {self.month} / {self.year}...")
         # SE ASIA
-        seasia_predict = SEAsiaCFR().predict(month=month,year=year)
+        seasia_prediction = SEAsiaCFR().predict(month=month,year=year)
+        self.report.loc[len(self.report)+1] = seasia_prediction
+        seasia_predict = seasia_prediction[4]
         seasia_cfr = self.get_SEAsiaCFR
         seasia_std = seasia_cfr[(seasia_cfr.index.month==self.month) & (seasia_cfr.index.year==self.year)].std_1.iloc[-1]
         
         # BRAZIL
-        brazil_predict = BrazilCFR().predict(month=month,year=year)
+        brazil_prediction = BrazilCFR().predict(month=month,year=year)
+        self.report.loc[len(self.report)+1] = brazil_prediction
+        brazil_predict = brazil_prediction[4]
         brazil_cfr = self.get_BrazilCFR 
         brazil_std = brazil_cfr[(brazil_cfr.index.month==self.month) & (brazil_cfr.index.year==self.year)].std_1.iloc[-1]
         
@@ -306,14 +319,20 @@ class MineNetBack(SourceModel):
             mine_netbacks.append(const + quarterdummy + ethanol0m*self.EIAE85 + freightCost0m*self.FreightCost + seasia0m*self.SEAsia + brazil0m*self.BrazilCFR)
 
         pred_df = pd.DataFrame(mine_netbacks,columns=['Predictions'])
-        print("*"*50)
-        print(pred_df.describe())
-        print("*"*50)
+        # print("*"*50)
+        # print(pred_df.describe())
+        # print("*"*50)
         pred_df.plot(kind='hist',bins=100,title=f'Mine Netback - {self.simulations} Iterations');
         # plt.show()
         prediction = round(self.kde_max_density(pred_df)['Predictions'],2)
-        print(f"Max Density -->>> ${prediction}")
-        return prediction
+        # print(f"Max Density -->>> ${prediction}")
+        print(f"MineNetback EV -->>> {self.year} {self.month} ${prediction}")
+
+        p25,p75 = pred_df.quantile(q=[0.25,0.75]).Predictions.tolist()
+        
+        self.report.loc[len(self.report)+1] = [self.year, self.month, "MineNetBack", p25,prediction,p75]
+
+        return [self.year, self.month, "MineNetBack", p25,prediction,p75]
 
 class ActualNetback(SourceModel):
     def __init__(self) -> None:
@@ -333,13 +352,16 @@ class ActualNetback(SourceModel):
             self.month=month
         if year:
             self.year = year
-        print(f"Predicting Actual Netback >> {self.month} / {self.year}...")
+        # print(f"Predicting Actual Netback >> {self.month} / {self.year}...")
         # WAR DUMMY
         warDummy = self.war_dummy()
         # Q DUMMY
         qDummy = self.quarterly_dummy(month=month)
         # MINE NETBACK
-        mineNetback_predict = MineNetBack().predict(month=month,year=year)
+        mine = MineNetBack()
+        mineNetback_prediction = mine.predict(month=month,year=year)
+        mineNetback_predict = mineNetback_prediction[4]
+        self.report = pd.concat([self.report,mine.report],ignore_index=True)
         mine_netbacks = self.get_historical_mineNetback
         mine_netbacks = mine_netbacks[(mine_netbacks.index.month==self.month) & (mine_netbacks.index.year==self.year)].iloc[-1]
         # INTERIM PRICING
@@ -354,13 +376,18 @@ class ActualNetback(SourceModel):
             mine6m = self.tri_distribute(mine_netbacks.lag3,mine_netbacks.std3)
             actuals.append(interim0m*self.Interim + mine0m*self.MineNetback + mine1m*self.MineNetback_1 + mine6m*self.MineNetback_6 + warDummy *  qDummy)
         pred_df = pd.DataFrame(actuals,columns=['Predictions'])
-        print("*"*50)
-        print(pred_df.describe())
-        print("*"*50)
+        # print("*"*50)
+        # print(pred_df.describe())
+        # print("*"*50)
         pred_df.plot(kind='hist',bins=100,title=f'Actual Netback - {self.simulations} Iterations');
         prediction = round(self.kde_max_density(pred_df)['Predictions'],2)
-        print(f"Max Density -->>> ${prediction}")
-        plt.show()
+        # print(f"Max Density -->>> ${prediction}")
+        print(f"Actual Netback EV -->>> {self.year} {self.month} ${prediction}")
+        print("*"*100)
+        p25,p75 = pred_df.quantile(q=[0.25,0.75]).Predictions.tolist()
+        
+        self.report.loc[len(self.report)+1] = [self.year, self.month, "ActualNetback", p25,prediction,p75]
+
         return prediction
         
 
@@ -373,8 +400,14 @@ if __name__=='__main__':
     # print("SE ASIA MODEL")
     # m = SEAsiaCFR()
     # m.predict()
-    _month = int(input("Enter a month: "))
-    _year = int(input("Enter a year: "))
-
+    # _month = int(input("Enter a month: "))
+    # _year = int(input("Enter a year: "))
+    
+    _year = 2023
     m = ActualNetback()
-    m.predict(_month,_year)
+    for _month in range(1,13):
+        m.predict(_month,_year)
+    print("*"*100)
+    m.report.to_csv('2023-Forecast.csv')
+
+

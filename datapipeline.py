@@ -1,6 +1,7 @@
 import os 
 import pandas as pd
 from datetime import datetime
+from DataPipes.datapipeline import DataPipes
 
 
 class DataFeed:
@@ -84,7 +85,7 @@ class DataFeed:
     def get_eurusd(self):
         # EUR USD
         eurusd_std_window = 3
-        source = "OECD"
+        source = "AWS"
 
         if source == 'OECD':
             # EUR USD
@@ -98,6 +99,7 @@ class DataFeed:
             e = e.resample('M').mean()
             e.ffill(inplace=True)
             e.rename(columns={"Value":"DEXUSEU"},inplace=True)
+            e['std_1'] = e['std_1'].apply(lambda x: 0.00001 if x==0 else x)
             return e
         elif source == 'FRED':
             file_name = 'DEXUSEU.csv'
@@ -109,8 +111,15 @@ class DataFeed:
             # Taking the mean for the month resample (instead of the last price)
             e = e.resample('1M').mean()
             e[f'std_1'] = e['DEXUSEU'].rolling(window=eurusd_std_window).std()
+            e['std_1'] = e['std_1'].apply(lambda x: 0.00001 if x==0 else x)
             return e
-
+        elif source == 'AWS':
+            file_name = 'aws_usdeur.csv'
+            src_file = os.path.join(self.src,file_name)
+            e = pd.read_csv(src_file, index_col=0,parse_dates=True)
+            e['std_1'] = e['Value'].rolling(window=eurusd_std_window).std()
+            e.rename(columns={"Value":"DEXUSEU"},inplace=True)
+            return e
 
     @property
     def get_g20_cpi(self):
