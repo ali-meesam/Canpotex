@@ -8,3 +8,6 @@ plotly
 statsmodels
 pyparsing
 tqdm
+pystan==2.19.1.1
+cmdstanpy==0.9.68
+prophet==1.0.1
