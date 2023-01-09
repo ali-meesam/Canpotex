@@ -403,11 +403,11 @@ if __name__=='__main__':
     # _month = int(input("Enter a month: "))
     # _year = int(input("Enter a year: "))
     
-    _year = 2023
+    _year = int(input('Enter the year to forecast (2023 - default): ') or 2023)
     m = ActualNetback()
     for _month in range(1,13):
         m.predict(_month,_year)
     print("*"*100)
-    m.report.to_csv(f'{datetime.strftime("%Y-%m-%d")}- {_year} Forecast.csv')
+    m.report.to_csv(f'{datetime.now().strftime("%Y-%m-%d")}- {_year} Forecast.csv')
 
 
