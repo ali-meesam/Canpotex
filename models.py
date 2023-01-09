@@ -408,6 +408,6 @@ if __name__=='__main__':
     for _month in range(1,13):
         m.predict(_month,_year)
     print("*"*100)
-    m.report.to_csv('2023-Forecast.csv')
+    m.report.to_csv(f'{datetime.strftime("%Y-%m-%d")}- {_year} Forecast.csv')
 
 

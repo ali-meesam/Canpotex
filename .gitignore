@@ -44,3 +44,4 @@ venv
 __pycache__/
 *.vscode
 creds.cfg
+*Forecast.csv
